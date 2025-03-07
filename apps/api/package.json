@@ -1,0 +1,29 @@
+{
+  "name": "@necta/api",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
+    "format": "biome format --write .",
+    "clerk:listen": "pnpm dlx ngrok http --url=still-regular-sculpin.ngrok-free.app 3004"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.4.3",
+    "@repo/logs": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@repo/shared": "workspace:*",
+    "hono": "^4",
+    "zod": "^3.24.2",
+    "@ai-sdk/openai": "^1.0.7",
+    "@supabase/supabase-js": "^2.47.0",
+    "ai": "^4.0.12",
+    "ethers": "^6.13.5",
+    "openai": "^4.76.1",
+    "viem": "^2.21.54"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "vercel": "^41.1.4",
+    "vitest": "^3.0.6"
+  }
+}
