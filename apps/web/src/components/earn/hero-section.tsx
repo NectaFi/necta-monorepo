@@ -65,46 +65,74 @@ export function HeroSection() {
     router.push("/earn/dashboard");
   };
 
-  const renderButton = () => {
+  // Get the appropriate headline, subtext, and CTA based on user state
+  const getHeroContent = () => {
     if (!isConnected) {
-      return <Connect label="Connect to start earning" hideBalance={true} />;
+      return {
+        headline: "Earn AI-optimized yields effortlessly.",
+        subtext: "Smart automation, best rates, zero complexity.",
+        cta: <Connect label="Connect Wallet" hideBalance={true} />
+      };
     }
 
-    return (
-      <Button
-        onClick={handleAction}
-        className="rounded-full border border-white/[0.08] bg-zinc-800/70 px-8 py-6 text-[15px] text-white/90 shadow-[0_2px_4px_0_rgba(0,0,0,0.15)] backdrop-blur-sm h-auto"
-      >
-        {!hasSmartAccount || !hasActivePositions ? "Deposit" : "View Portfolio"}
-      </Button>
-    );
+    if (!hasSmartAccount || !hasActivePositions) {
+      return {
+        headline: "Activate AI-powered yield optimization.",
+        subtext: "Deposit funds, and our AI does the rest.",
+        cta: (
+          <Button
+            onClick={handleAction}
+            className="rounded-full border border-white/[0.08] bg-zinc-800/70 px-8 py-6 text-[15px] text-white/90 shadow-[0_2px_4px_0_rgba(0,0,0,0.15)] backdrop-blur-sm h-auto"
+          >
+            Deposit & Activate AI
+          </Button>
+        )
+      };
+    }
+
+    return {
+      headline: "Your AI agents are optimizing your yield.",
+      subtext: "Track your earnings and adjust strategies anytime.",
+      cta: (
+        <Button
+          onClick={() => router.push("/earn/dashboard")}
+          className="rounded-full border border-white/[0.08] bg-zinc-800/70 px-8 py-6 text-[15px] text-white/90 shadow-[0_2px_4px_0_rgba(0,0,0,0.15)] backdrop-blur-sm h-auto"
+        >
+          View Portfolio
+        </Button>
+      )
+    };
   };
+
+  const { headline, subtext, cta } = getHeroContent();
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-12 py-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-8 py-8 md:py-12">
         {/* Left side - Main content */}
-        <div className="flex flex-col items-start space-y-8">
+        <div className="flex flex-col items-start space-y-6">
           <div className="max-w-2xl">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white">
-              Earn Stablecoin Yields in a Few Clicks
+              {headline}
             </h1>
-            <p className="mt-4 text-xl text-white/70">
-              Welcome to the era of intelligent yield optimization.
+            <p className="mt-4 text-lg md:text-xl text-white/70">
+              {subtext}
             </p>
           </div>
 
-          {renderButton()}
+          <div className="mt-2">
+            {cta}
+          </div>
         </div>
 
         {/* Right side - Protocol logos */}
-        <div className="flex flex-col items-center space-y-6">
+        <div className="flex flex-col items-center space-y-4 mt-6 md:mt-0">
           <p className="text-white/60 text-sm">Supported Protocols</p>
-          <div className="grid grid-cols-3 gap-8">
+          <div className="grid grid-cols-3 gap-4 md:gap-8">
             {protocols.map((protocol) => (
               <div
                 key={protocol.name}
-                className="relative h-16 w-16 rounded-full bg-zinc-800/70 border border-white/[0.08] p-3 flex items-center justify-center hover:border-white/20 transition-colors"
+                className="relative h-12 w-12 md:h-16 md:w-16 rounded-full bg-zinc-800/70 border border-white/[0.08] p-3 flex items-center justify-center hover:border-white/20 transition-colors"
               >
                 <Image
                   src={protocol.src}

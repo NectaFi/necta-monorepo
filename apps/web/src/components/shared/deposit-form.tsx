@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 
 interface DepositFormProps {
@@ -45,10 +45,9 @@ export function DepositForm({
         riskLevel: isFirstTime ? riskLevel : undefined,
       });
 
-      toast.success(`Successfully deposited ${amount} ${token}`);
+      toast.success(`Successfully deposited ${amount} ${token} into your smart account`);
       onSuccess();
     } catch (error) {
-      console.error("Deposit failed:", error);
       toast.error("Deposit failed. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -56,7 +55,16 @@ export function DepositForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {isFirstTime && (
+        <div className="rounded-lg bg-white/5 p-3 text-sm text-white/80 flex items-start gap-2">
+          <Info className="h-5 w-5 text-brand-primary flex-shrink-0 mt-0.5" />
+          <p>
+            Your deposit will go into your smart account first. Our AI will then allocate your funds to the best yield opportunities.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-2">
         <label htmlFor="amount" className="block text-sm text-white/60">
           Amount ({token})
@@ -73,7 +81,8 @@ export function DepositForm({
           required
         />
 
-        <div className="flex justify-between mt-2">
+        {/* Quick amount buttons in a responsive grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
           <Button
             type="button"
             variant="outline"
@@ -118,7 +127,7 @@ export function DepositForm({
           <label className="block text-sm text-white/60">
             Risk Preference
           </label>
-          <div className="space-y-6">
+          <div className="space-y-4">
             <Slider
               defaultValue={[50]}
               min={0}
@@ -145,7 +154,7 @@ export function DepositForm({
       <Button
         type="submit"
         disabled={isSubmitting}
-        className="w-full bg-brand-primary hover:bg-brand-primary/90"
+        className="w-full rounded-full bg-brand-primary hover:bg-brand-primary/90 mt-2"
       >
         {isSubmitting ? (
           <>
@@ -153,7 +162,7 @@ export function DepositForm({
             Depositing...
           </>
         ) : (
-          `Deposit ${amount ? `${amount} ${token}` : ""}`
+          `Deposit ${amount ? `${amount} ${token}` : ""} & Activate AI`
         )}
       </Button>
     </form>

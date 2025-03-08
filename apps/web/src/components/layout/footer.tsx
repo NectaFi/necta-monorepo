@@ -5,8 +5,8 @@ import { APP_LINKS, APP_SOCIALS } from "@/lib/constants";
 
 export function AppFooter() {
   return (
-    <footer className="w-full mt-auto">
-      <div className="mx-auto flex h-16 max-w-[1150px] items-center justify-between px-4">
+    <footer className="w-full border-t border-white/[0.08] bg-zinc-900/30 backdrop-blur-sm">
+      <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <p className="text-sm text-white/60">
           © {new Date().getFullYear()} NectaFi. All rights reserved.
         </p>

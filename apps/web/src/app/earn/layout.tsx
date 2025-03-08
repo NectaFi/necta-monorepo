@@ -12,17 +12,16 @@ export default function EarnLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="relative min-h-screen">
-      <BackgroundGradientAnimation>
-        <div className="relative flex min-h-screen flex-col">
-          <Header />
-          <div className="flex-1">
-            <div className="relative">
-              <Suspense>{children}</Suspense>
-            </div>
-          </div>
-          <AppFooter />
-        </div>
-      </BackgroundGradientAnimation>
+      <div className="fixed inset-0 z-[-1]">
+        <BackgroundGradientAnimation />
+      </div>
+      <div className="relative flex min-h-screen flex-col">
+        <Header />
+        <main className="flex-1">
+          <Suspense>{children}</Suspense>
+        </main>
+        <AppFooter />
+      </div>
     </div>
   );
 }
