@@ -1,9 +1,4 @@
-import * as chains from 'viem/chains'
-import { getChainConfig } from '../config/chains'
+import * as chains from "viem/chains";
 
-export const getChain = (chainId: number) => {
-	// First validate chain is supported in our config
-	getChainConfig(chainId)
-	// Then get viem chain info
-	return Object.values(chains).find((chain) => chain.id === chainId)
-}
+export const getChain = (chainId: number) =>
+  Object.values(chains).find((chain) => chain.id === chainId);
