@@ -16,16 +16,36 @@ function getPortalsNetworkId(): string {
  * @returns The balances of the account
  */
 export const getAccountBalances = async (owner: Hex) => {
-	const networkId = getPortalsNetworkId()
-	const url = `https://api.portals.fi/v2/account?owner=${owner}&networks=${networkId}`
-	const response = await fetch(url, {
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: `Bearer ${env.PORTALS_API_KEY}`,
-		},
-	})
+	try {
+		const networkId = getPortalsNetworkId()
+		const url = `https://api.portals.fi/v2/account?owner=${owner}&networks=${networkId}`
+		console.log(`[getAccountBalances] Fetching from: ${url}`)
 
-	return response.json()
+		const response = await fetch(url, {
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${env.PORTALS_API_KEY}`,
+			},
+		})
+
+		if (!response.ok) {
+			console.error(`[getAccountBalances] API error: ${response.status}`)
+			return { balances: [] } // Return empty array instead of undefined
+		}
+
+		const data = await response.json()
+
+		// Check if the response has the expected structure
+		if (!data.balances) {
+			console.error('[getAccountBalances] Unexpected API response format:', data)
+			return { balances: [] } // Return empty array instead of undefined
+		}
+
+		return data
+	} catch (error) {
+		console.error('[getAccountBalances] Error:', error)
+		return { balances: [] } // Return empty array instead of undefined
+	}
 }
 
 /**

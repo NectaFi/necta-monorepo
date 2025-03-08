@@ -41,9 +41,9 @@ export const getSentinelToolkit = (address: Hex) => {
 			execute: async () => {
 				console.log('======== getWalletBalances Tool =========')
 				console.log(`[getWalletBalances] fetching token balances for ${address}...`)
-				const { balances } = await getAccountBalances(address)
+				const { balances = [] } = await getAccountBalances(address)
 
-				const tokenBalances = balances
+				const tokenBalances = (Array.isArray(balances) ? balances : [])
 					.filter(
 						(balance: any) =>
 							balance.platform === 'native' || balance.platform === 'basic'

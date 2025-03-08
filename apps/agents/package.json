@@ -5,6 +5,7 @@
 	"scripts": {
 		"dev": "bun run --hot src/index.ts",
 		"start": "bun run src/index.ts",
+		"test": "bun test",
 		"format": "biome format --write ."
 	},
 	"devDependencies": {
