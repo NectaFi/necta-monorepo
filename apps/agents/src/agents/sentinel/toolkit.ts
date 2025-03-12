@@ -88,8 +88,20 @@ export const getSentinelToolkit = (address: Hex) => {
 
 					return data.tokens
 						.map(
-							(token: any) =>
-								`[${token.name}] APY: ${token.metrics.apy}% - volume 1d: $${token.metrics.volumeUsd1d} - volume 7d: $${token.metrics.volumeUsd7d}`
+							(token: any) => {
+								// Format liquidity to be more readable
+								const liquidityInMillions = (token.liquidity / 1000000).toFixed(2)
+
+								// Handle volume metrics - use absolute value since we only care about volume magnitude
+								let volume7d = 'N/A'
+								if (token.metrics.volumeUsd7d) {
+									// Parse the volume, take absolute value, and format
+									const volumeValue = Math.abs(parseFloat(token.metrics.volumeUsd7d))
+									volume7d = `$${(volumeValue / 1000000).toFixed(2)}M`
+								}
+
+								return `[${token.name}] APY: ${token.metrics.apy}% - Risk: ${token.riskLevel} - TVL: $${liquidityInMillions}M - Volume 7d: ${volume7d}`
+							}
 						)
 						.join('\n')
 				}
