@@ -3,6 +3,8 @@ import type { Hex } from 'viem'
 import { getAccountBalances, getMarketData } from '../../data'
 import { z } from 'zod'
 import { retrievePastReports } from '../../memory'
+import { getPosition, getPositionAgeHours, recordPosition } from '../../data/positions'
+import { isReallocationViable } from '../../config/reallocation-thresholds'
 
 export const getSentinelToolkit = (address: Hex) => {
 	return {
@@ -53,6 +55,22 @@ export const getSentinelToolkit = (address: Hex) => {
 							`[${balance.symbol}] balance: ${balance.balance} $${balance.balanceUSD}) - price: $${balance.price}`
 					)
 					.join('\n')
+
+				// Record positions for reallocation threshold tracking
+				balances
+					.filter(
+						(balance: any) =>
+							balance.platform !== 'native' && balance.platform !== 'basic'
+					)
+					.forEach((balance: any) => {
+						recordPosition(
+							address as string,
+							balance.platform,
+							balance.symbol,
+							balance.balanceUSD,
+							balance.metrics.apy
+						)
+					})
 
 				const formattedBalances = balances
 					.filter(
@@ -110,6 +128,51 @@ export const getSentinelToolkit = (address: Hex) => {
 
 				console.log(`[getMarketData] market data fetched correctly.`)
 				return `These are the current market opportunities:\n\nUSDC Opportunities:\n${usdcFormatted}`
+			},
+		}),
+		checkReallocationViability: tool({
+			description: 'A tool that checks if reallocating funds from one protocol to another is economically viable.',
+			parameters: z.object({
+				currentProtocol: z.string().describe('The protocol where funds are currently allocated'),
+				currentToken: z.string().describe('The token symbol (e.g., USDC)'),
+				targetProtocol: z.string().describe('The protocol where funds would be reallocated to'),
+				targetApy: z.number().describe('The APY of the target protocol (percentage)'),
+			}),
+			execute: async ({ currentProtocol, currentToken, targetProtocol, targetApy }) => {
+				console.log('======== checkReallocationViability Tool =========')
+				console.log(`[checkReallocationViability] checking viability for ${currentProtocol} -> ${targetProtocol}`)
+
+				// Get the current position
+				const position = getPosition(address as string, currentProtocol, currentToken)
+
+				if (!position) {
+					return `No existing position found for ${currentToken} on ${currentProtocol}. Cannot evaluate reallocation.`
+				}
+
+				// Calculate position age in hours
+				const positionAgeHours = getPositionAgeHours(position)
+
+				// Check if reallocation is viable
+				const { viable, reason } = isReallocationViable(
+					position.value,
+					position.apy,
+					targetApy,
+					positionAgeHours
+				)
+
+				// Format the response
+				const response = [
+					`Reallocation Analysis: ${currentProtocol} -> ${targetProtocol}`,
+					`Current position: ${position.value.toFixed(2)} ${currentToken} at ${position.apy.toFixed(2)}% APY`,
+					`Position age: ${positionAgeHours.toFixed(1)} hours`,
+					`Target APY: ${targetApy.toFixed(2)}%`,
+					`APY improvement: ${(targetApy - position.apy).toFixed(2)}%`,
+					`Decision: ${viable ? 'VIABLE' : 'NOT VIABLE'}`,
+					`Reason: ${reason}`
+				].join('\n')
+
+				console.log(`[checkReallocationViability] completed check: ${viable ? 'VIABLE' : 'NOT VIABLE'}`)
+				return response
 			},
 		}),
 		noFurtherActionsTool: tool({
