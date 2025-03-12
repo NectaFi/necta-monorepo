@@ -2,6 +2,7 @@ import type { Hex } from 'viem'
 import env from '../env'
 import type { PortalsNetwork } from '../utils/chain'
 import { DEFAULT_NETWORK } from '../utils/chain'
+import { getProtocolRiskLevel } from './risk-ratings'
 
 /**
  * Protocol Inclusion Criteria:
@@ -86,11 +87,19 @@ export const getMarketData = async (
 
 	// Filter to only include approved protocols and exclude user-specified protocols
 	if (data.tokens) {
+		// First filter the tokens
 		data.tokens = data.tokens.filter(
 			(token: any) =>
 				APPROVED_PROTOCOLS.includes(token.platform) &&
 				!excludedProtocols.includes(token.platform)
 		)
+
+		// Then add risk level to each token
+		data.tokens = data.tokens.map((token: any) => ({
+			...token,
+			riskLevel: getProtocolRiskLevel(token.platform),
+			// We keep the original data from the API (liquidity, addresses, etc.)
+		}))
 	}
 
 	return {
@@ -130,10 +139,13 @@ export const getPositionData = async (
 				},
 			});
 			const data = await response.json();
+
+			// Add risk level to the result
 			return {
 				protocol,
 				token,
 				data,
+				riskLevel: getProtocolRiskLevel(protocol),
 			};
 		})
 	)
