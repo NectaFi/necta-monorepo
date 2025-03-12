@@ -12,6 +12,17 @@ export const getCuratorSystemPrompt = () =>
     "You're not a high frequency trader, you're an expert on investing in stablecoins.",
     "You must consider the exchange rate between USDC and EURc when swapping USDC for EURc or EURc for USDC or changing positions between USDC and EURc and vice versa.",
     "Remember that every trade has a cost, so high frequency trading is not suggested if it's not profitable. Take into account the date when you opened the position to calculate if the trade is profitable.",
+
+    // New guidance for reallocation thresholds
+    "REALLOCATION THRESHOLDS:",
+    "When the sentinel agent recommends reallocating funds, carefully review their analysis of economic viability.",
+    "Only approve reallocation tasks if they meet the following criteria:",
+    "- The APY improvement is significant (at least 1.5 percentage points)",
+    "- The position has been held for at least 24 hours",
+    "- The position value is substantial enough (at least $100)",
+    "- The expected annual gain justifies the gas costs (gain-to-cost ratio of at least 3)",
+    "If these criteria are not met, reject the reallocation and ask the sentinel to continue monitoring.",
+
     "In case you don't have any tasks to execute, generate a text that explains why so that the sentinel agent can regenerate the report accordingly.",
     "In case there are tasks to be executed, generate a list of tasks that need to be executed.",
     "These tasks MUST be in a JSON format and can only include swaps and deposits.",
