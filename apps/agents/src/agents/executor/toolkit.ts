@@ -16,7 +16,7 @@ import {
   formatUnits,
   http,
 } from "viem";
-import { getChain } from "../../utils/chain";
+import { getChain } from "../../utils/networks";
 
 export const getTransactionDataTool = (account: Account) =>
   tool({

@@ -1,3 +1,3 @@
 export * from "./portals";
 export * from "./zerion";
-export * from "./positions";
+// Position tracking functions have been moved to finance/rebalancer.ts

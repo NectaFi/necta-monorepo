@@ -3,8 +3,8 @@ import type { Hex } from 'viem'
 import { getAccountBalances, getMarketData } from '../../data'
 import { z } from 'zod'
 import { retrievePastReports } from '../../memory'
-import { getPosition, getPositionAgeHours, recordPosition } from '../../data/positions'
-import { isReallocationViable } from '../../config/reallocation-thresholds'
+import { getPositionAgeHours, recordPositionEntry, isReallocationViable } from '../../finance/rebalancer'
+import { formatInMillions } from '../../utils/formats'
 
 export const getSentinelToolkit = (address: Hex) => {
 	return {
@@ -52,23 +52,21 @@ export const getSentinelToolkit = (address: Hex) => {
 					)
 					.map(
 						(balance: any) =>
-							`[${balance.symbol}] balance: ${balance.balance} $${balance.balanceUSD}) - price: $${balance.price}`
+							`[${balance.symbol}] balance: ${balance.balance} ($${balance.balanceUSD.toFixed(2)}) - price: $${balance.price.toFixed(2)}`
 					)
 					.join('\n')
 
-				// Record positions for reallocation threshold tracking
+				// Record position entry timestamps for reallocation threshold tracking
 				balances
 					.filter(
 						(balance: any) =>
 							balance.platform !== 'native' && balance.platform !== 'basic'
 					)
 					.forEach((balance: any) => {
-						recordPosition(
+						recordPositionEntry(
 							address as string,
 							balance.platform,
-							balance.symbol,
-							balance.balanceUSD,
-							balance.metrics.apy
+							balance.symbol
 						)
 					})
 
@@ -79,8 +77,8 @@ export const getSentinelToolkit = (address: Hex) => {
 					)
 					.map(
 						(balance: any) =>
-							`[${balance.symbol}] balance: ${balance.balance} $${
-								balance.balanceUSD
+							`[${balance.symbol}] balance: ${balance.balance} ($${
+								balance.balanceUSD.toFixed(2)
 							}) on protocol ${balance.platform.replace('-', ' ')} with APY ${
 								balance.metrics.apy
 							}%`
@@ -107,18 +105,7 @@ export const getSentinelToolkit = (address: Hex) => {
 					return data.tokens
 						.map(
 							(token: any) => {
-								// Format liquidity to be more readable
-								const liquidityInMillions = (token.liquidity / 1000000).toFixed(2)
-
-								// Handle volume metrics - use absolute value since we only care about volume magnitude
-								let volume7d = 'N/A'
-								if (token.metrics.volumeUsd7d) {
-									// Parse the volume, take absolute value, and format
-									const volumeValue = Math.abs(parseFloat(token.metrics.volumeUsd7d))
-									volume7d = `$${(volumeValue / 1000000).toFixed(2)}M`
-								}
-
-								return `[${token.name}] APY: ${token.metrics.apy}% - Risk: ${token.riskLevel} - TVL: $${liquidityInMillions}M - Volume 7d: ${volume7d}`
+								return `[${token.name}] APY: ${token.metrics.apy}% - Risk: ${token.riskLevel} - TVL: ${formatInMillions(token.liquidity)}`
 							}
 						)
 						.join('\n')
@@ -142,20 +129,29 @@ export const getSentinelToolkit = (address: Hex) => {
 				console.log('======== checkReallocationViability Tool =========')
 				console.log(`[checkReallocationViability] checking viability for ${currentProtocol} -> ${targetProtocol}`)
 
-				// Get the current position
-				const position = getPosition(address as string, currentProtocol, currentToken)
+				// Get the current position from the API
+				const { balances = [] } = await getAccountBalances(address)
+				const currentPosition = balances.find(
+					(balance: any) =>
+						balance.platform === currentProtocol &&
+						balance.symbol.toLowerCase() === currentToken.toLowerCase()
+				)
 
-				if (!position) {
+				if (!currentPosition) {
 					return `No existing position found for ${currentToken} on ${currentProtocol}. Cannot evaluate reallocation.`
 				}
 
 				// Calculate position age in hours
-				const positionAgeHours = getPositionAgeHours(position)
+				const positionAgeHours = getPositionAgeHours(
+					address as string,
+					currentProtocol,
+					currentToken
+				)
 
 				// Check if reallocation is viable
 				const { viable, reason } = isReallocationViable(
-					position.value,
-					position.apy,
+					currentPosition.balanceUSD,
+					currentPosition.metrics.apy,
 					targetApy,
 					positionAgeHours
 				)
@@ -163,10 +159,10 @@ export const getSentinelToolkit = (address: Hex) => {
 				// Format the response
 				const response = [
 					`Reallocation Analysis: ${currentProtocol} -> ${targetProtocol}`,
-					`Current position: ${position.value.toFixed(2)} ${currentToken} at ${position.apy.toFixed(2)}% APY`,
+					`Current position: ${currentPosition.balanceUSD.toFixed(2)} ${currentToken} at ${currentPosition.metrics.apy.toFixed(2)}% APY`,
 					`Position age: ${positionAgeHours.toFixed(1)} hours`,
 					`Target APY: ${targetApy.toFixed(2)}%`,
-					`APY improvement: ${(targetApy - position.apy).toFixed(2)}%`,
+					`APY improvement: ${(targetApy - currentPosition.metrics.apy).toFixed(2)}%`,
 					`Decision: ${viable ? 'VIABLE' : 'NOT VIABLE'}`,
 					`Reason: ${reason}`
 				].join('\n')

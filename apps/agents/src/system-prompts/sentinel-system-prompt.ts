@@ -1,5 +1,5 @@
 import type { Hex } from 'viem'
-import { DEFAULT_REALLOCATION_THRESHOLDS } from '../config/reallocation-thresholds'
+import { DEFAULT_THRESHOLDS } from '../utils/constants'
 
 export const getSentinelSystemPrompt = (address: Hex) =>
 	[
@@ -22,17 +22,14 @@ export const getSentinelSystemPrompt = (address: Hex) =>
 		'When proposing such strategy, you need to specify or hint the amount of tokens that we need to sell to reach that amount.',
 		'Do not suggest the amount in dollars to sell, but rather the amount in tokens using the price of the token.',
 
-		// New guidance for reallocation thresholds
+		// Simplified reallocation guidance
 		'',
-		'REALLOCATION THRESHOLDS:',
-		'When considering reallocating funds from one protocol to another, you MUST use the checkReallocationViability tool to determine if the reallocation is economically viable.',
-		'Reallocations should only be recommended if they meet the following criteria:',
-		`- Minimum APY improvement: ${DEFAULT_REALLOCATION_THRESHOLDS.MIN_APY_IMPROVEMENT}%`,
-		`- Minimum holding period: ${DEFAULT_REALLOCATION_THRESHOLDS.MIN_HOLDING_PERIOD_HOURS} hours`,
-		`- Minimum position value: $${DEFAULT_REALLOCATION_THRESHOLDS.MIN_USD_VALUE}`,
-		`- Minimum gain-to-cost ratio: ${DEFAULT_REALLOCATION_THRESHOLDS.MIN_GAIN_TO_COST_RATIO}`,
+		'REALLOCATION GUIDELINES:',
+		'When considering moving funds between protocols, use the checkReallocationViability tool to determine if it makes economic sense.',
+		'Only recommend reallocations when:',
+		`- The APY improvement is at least ${DEFAULT_THRESHOLDS.MIN_APY_IMPROVEMENT}%`,
+		`- The position has been held for at least ${DEFAULT_THRESHOLDS.MIN_HOLDING_PERIOD} hours`,
+		`- The position value is at least $${DEFAULT_THRESHOLDS.MIN_POSITION_VALUE}`,
 		'',
-		'These thresholds ensure that reallocations are only performed when the economic benefits outweigh the gas costs.',
-		'If a reallocation is not viable, you should explain why and suggest waiting until conditions improve.',
-		'For hourly checks, use the noFurtherActionsTool with a waitTime of 3600 (1 hour) if no viable reallocations are found.',
+		'If no viable reallocations are found, use the noFurtherActionsTool with a waitTime of 3600 (1 hour).',
 	].join('\n')

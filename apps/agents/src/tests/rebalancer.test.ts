@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'bun:test'
-import { isReallocationViable, calculateExpectedAnnualGain, DEFAULT_REALLOCATION_THRESHOLDS } from '../config/reallocation-thresholds'
+import { isReallocationViable, calculateExpectedAnnualGain } from '../finance/rebalancer'
+import { DEFAULT_THRESHOLDS } from '../utils/constants'
 
-describe('Reallocation Thresholds', () => {
+describe('Rebalancer', () => {
   describe('calculateExpectedAnnualGain', () => {
     it('should calculate the expected annual gain correctly', () => {
       // $1000 position with 2% APY improvement
@@ -56,21 +57,27 @@ describe('Reallocation Thresholds', () => {
     })
 
     it('should reject reallocation when gain-to-cost ratio is too low', () => {
-      // Custom thresholds to test gain-to-cost ratio specifically
-      const customThresholds = {
-        ...DEFAULT_REALLOCATION_THRESHOLDS,
-        MIN_APY_IMPROVEMENT: 1, // Lower this to test gain-to-cost ratio
-        ESTIMATED_GAS_COST_USD: 10, // Higher gas cost
-        MIN_GAIN_TO_COST_RATIO: 5 // Higher ratio requirement
-      }
+      // Save original values
+      const originalMinApyImprovement = DEFAULT_THRESHOLDS.MIN_APY_IMPROVEMENT
+      const originalGasCost = DEFAULT_THRESHOLDS.GAS_COST_ESTIMATE
+      const originalMinGainRatio = DEFAULT_THRESHOLDS.MIN_GAIN_RATIO
+
+      // Temporarily modify constants for this test
+      DEFAULT_THRESHOLDS.MIN_APY_IMPROVEMENT = 1
+      DEFAULT_THRESHOLDS.GAS_COST_ESTIMATE = 10
+      DEFAULT_THRESHOLDS.MIN_GAIN_RATIO = 5
 
       const result = isReallocationViable(
         200,  // $200 position
         3,    // 3% current APY
         4.5,  // 4.5% new APY (1.5% improvement)
-        48,   // 48 hours position age
-        customThresholds
+        48    // 48 hours position age
       )
+
+      // Restore original values
+      DEFAULT_THRESHOLDS.MIN_APY_IMPROVEMENT = originalMinApyImprovement
+      DEFAULT_THRESHOLDS.GAS_COST_ESTIMATE = originalGasCost
+      DEFAULT_THRESHOLDS.MIN_GAIN_RATIO = originalMinGainRatio
 
       // Expected annual gain: $3 (1.5% of $200)
       // Gain-to-cost ratio: 0.3 ($3/$10)
