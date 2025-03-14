@@ -1,8 +1,9 @@
 import type { Hex } from 'viem'
 import env from '../env'
-import type { PortalsNetwork } from '../utils/chain'
-import { DEFAULT_NETWORK } from '../utils/chain'
-import { getProtocolRiskLevel } from './risk-ratings'
+import type { SupportedNetwork } from '../utils/networks'
+import { DEFAULT_NETWORK } from '../utils/networks'
+import { getProtocolRiskLevel } from './risk-scores'
+import { APPROVED_PROTOCOLS, DEFAULT_THRESHOLDS, TOKENS } from '../utils/constants'
 
 /**
  * Protocol Inclusion Criteria:
@@ -13,23 +14,13 @@ import { getProtocolRiskLevel } from './risk-ratings'
  * 5. Non-volatile (exclude AMM pools with high volatility)
  */
 
-// Whitelist of approved protocols with strong security records
-export const APPROVED_PROTOCOLS = [
-	'aavev3', // Aave V3 - Major lending protocol with multiple audits
-	'compound-v3', // Compound V3 - Established lending protocol
-	'morpho', // Morpho - Well-audited lending protocol
-	'moonwell', // Moonwell - Base-native lending protocol
-	'euler', // Euler - Established lending protocol
-	'fluid', // Fluid - Newer but well-audited protocol
-]
-
 /**
  * @dev Gets the balances of an account
  * @param owner - The owner of the account
  * @param network - The network to query (defaults to env.CHAIN_NAME)
  * @returns The balances of the account
  */
-export const getAccountBalances = async (owner: Hex, network: PortalsNetwork = DEFAULT_NETWORK) => {
+export const getAccountBalances = async (owner: Hex, network: SupportedNetwork = DEFAULT_NETWORK) => {
 	try {
 		const url = `https://api.portals.fi/v2/account?owner=${owner}&networks=${network}`
 		console.log(`[getAccountBalances] Fetching from: ${url}`)
@@ -67,15 +58,17 @@ export const getAccountBalances = async (owner: Hex, network: PortalsNetwork = D
  * @param maxApy - Maximum APY threshold (default: 60)
  * @param excludedProtocols - Additional protocols to exclude (optional)
  * @param network - The network to query (defaults to env.CHAIN_NAME)
+ * @param token - The token to search for (defaults to USDC)
  * @returns The market data for USDC opportunities
  */
 export const getMarketData = async (
-	minApy: number = 3,
-	maxApy: number = 60,
+	minApy: number = DEFAULT_THRESHOLDS.MIN_APY,
+	maxApy: number = DEFAULT_THRESHOLDS.MAX_APY,
 	excludedProtocols: string[] = [],
-	network: PortalsNetwork = DEFAULT_NETWORK
+	network: SupportedNetwork = DEFAULT_NETWORK,
+	token: string = TOKENS.USDC
 ) => {
-	const url = `https://api.portals.fi/v2/tokens?networks=${network}&minLiquidity=10000000&minApy=${minApy}&maxApy=${maxApy}&search=usdc`
+	const url = `https://api.portals.fi/v2/tokens?networks=${network}&minLiquidity=${DEFAULT_THRESHOLDS.MIN_LIQUIDITY}&minApy=${minApy}&maxApy=${maxApy}&search=${token}`
 	console.log('======== fetchTokenData =========')
 	const response = await fetch(url, {
 		headers: {
@@ -118,36 +111,41 @@ export const getMarketData = async (
  */
 export const getPositionData = async (
 	queries: Array<{ protocol: string; token: string }>,
-	minLiquidity: number = 10000000,
-	minApy: number = 3,
-	maxApy: number = 60,
-	network: PortalsNetwork = DEFAULT_NETWORK
+	minLiquidity: number = DEFAULT_THRESHOLDS.MIN_LIQUIDITY,
+	minApy: number = DEFAULT_THRESHOLDS.MIN_APY,
+	maxApy: number = DEFAULT_THRESHOLDS.MAX_APY,
+	network: SupportedNetwork = DEFAULT_NETWORK
 ) => {
 	// Filter queries to only include approved protocols
 	const filteredQueries = queries.filter(
 		({ protocol }) => APPROVED_PROTOCOLS.includes(protocol)
 	)
 
-	const results = await Promise.all(
-		filteredQueries.map(async ({ protocol, token }) => {
-			const url = `https://api.portals.fi/v2/tokens?networks=${network}&platforms=${protocol}&minLiquidity=${minLiquidity}&minApy=${minApy}&maxApy=${maxApy}&search=${token}`
-			console.log('======== fetchPositionData ========')
-			const response = await fetch(url, {
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${env.PORTALS_API_KEY}`,
-				},
-			});
-			const data = await response.json();
+	try {
+		const results = await Promise.all(
+			filteredQueries.map(async ({ protocol, token }) => {
+				const url = `https://api.portals.fi/v2/tokens?networks=${network}&platforms=${protocol}&minLiquidity=${minLiquidity}&minApy=${minApy}&maxApy=${maxApy}&search=${token}`
+				console.log('======== fetchPositionData ========')
+				const response = await fetch(url, {
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${env.PORTALS_API_KEY}`,
+					},
+				});
+				const data = await response.json();
 
-			// Add risk level to the result
-			return {
-				protocol,
-				token,
-				data,
-				riskLevel: getProtocolRiskLevel(protocol),
-			};
-		})
-	)
-	return results
+				// Add risk level to the result
+				return {
+					protocol,
+					token,
+					data,
+					riskLevel: getProtocolRiskLevel(protocol),
+				};
+			})
+		)
+		return results
+	} catch (error) {
+		console.error('[getPositionData] Error:', error)
+		return []
+	}
 }

@@ -176,3 +176,68 @@ export const retrievePastReports = async (question: string) => {
 
 	return documents
 }
+
+/**
+ * Records a position entry in the database if it doesn't exist
+ * @param address - Wallet address
+ * @param protocol - Protocol name
+ * @param token - Token symbol
+ * @returns The database operation result
+ */
+export const recordPositionEntry = async (
+	address: string,
+	protocol: string,
+	token: string
+) => {
+	// Check if entry already exists
+	const { data: existing } = await supabase
+		.from('position_entries')
+		.select('id')
+		.eq('address', address)
+		.eq('protocol', protocol)
+		.eq('token', token)
+		.maybeSingle();
+
+	// If entry doesn't exist, create it
+	if (!existing) {
+		return supabase
+			.from('position_entries')
+			.insert({
+				address,
+				protocol,
+				token
+			});
+	}
+
+	// Entry already exists, no need to update
+	return { data: existing, error: null };
+}
+
+/**
+ * Gets the age of a position in hours
+ * @param address - Wallet address
+ * @param protocol - Protocol name
+ * @param token - Token symbol
+ * @returns Age in hours, or 0 if position entry is not found
+ */
+export const getPositionAgeHours = async (
+	address: string,
+	protocol: string,
+	token: string
+): Promise<number> => {
+	const { data } = await supabase
+		.from('position_entries')
+		.select('timestamp')
+		.eq('address', address)
+		.eq('protocol', protocol)
+		.eq('token', token)
+		.maybeSingle();
+
+	if (!data) return 0;
+
+	const entryTime = new Date(data.timestamp).getTime();
+	const currentTime = Date.now();
+	const ageMs = currentTime - entryTime;
+
+	return ageMs / (1000 * 60 * 60); // Convert ms to hours
+}
