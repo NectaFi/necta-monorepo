@@ -57,18 +57,20 @@ export const getSentinelToolkit = (address: Hex) => {
 					.join('\n')
 
 				// Record position entry timestamps for reallocation threshold tracking
-				balances
-					.filter(
-						(balance: any) =>
-							balance.platform !== 'native' && balance.platform !== 'basic'
-					)
-					.forEach((balance: any) => {
-						recordPositionEntry(
-							address as string,
-							balance.platform,
-							balance.symbol
+				await Promise.all(
+					balances
+						.filter(
+							(balance: any) =>
+								balance.platform !== 'native' && balance.platform !== 'basic'
 						)
-					})
+						.map((balance: any) =>
+							recordPositionEntry(
+								address as string,
+								balance.platform,
+								balance.symbol
+							)
+						)
+				)
 
 				const formattedBalances = balances
 					.filter(
@@ -141,8 +143,8 @@ export const getSentinelToolkit = (address: Hex) => {
 					return `No existing position found for ${currentToken} on ${currentProtocol}. Cannot evaluate reallocation.`
 				}
 
-				// Calculate position age in hours
-				const positionAgeHours = getPositionAgeHours(
+				// Calculate position age in hours - now async
+				const positionAgeHours = await getPositionAgeHours(
 					address as string,
 					currentProtocol,
 					currentToken

@@ -4,120 +4,7 @@
  * gas costs, and position size.
  */
 import { DEFAULT_THRESHOLDS } from '../utils/constants'
-import { z } from 'zod'
-
-// Define the position entry schema
-export const PositionEntrySchema = z.object({
-  protocol: z.string(),
-  token: z.string(),
-  timestamp: z.number()
-})
-
-export type PositionEntry = z.infer<typeof PositionEntrySchema>
-
-// In-memory storage for position timestamps (for Beta V1)
-// In a production environment, this would be stored in a database
-const positionEntryTimes: Record<string, PositionEntry[]> = {}
-
-/**
- * Records when a position was first seen or updates an existing entry
- * @param address - Wallet address
- * @param protocol - Protocol name
- * @param token - Token symbol
- * @returns The recorded position entry
- */
-export function recordPositionEntry(
-  address: string,
-  protocol: string,
-  token: string
-): PositionEntry {
-  // Initialize position history for this address if it doesn't exist
-  if (!positionEntryTimes[address]) {
-    positionEntryTimes[address] = []
-  }
-
-  // Find existing position with the same protocol and token
-  const existingIndex = positionEntryTimes[address].findIndex(
-    p => p.protocol === protocol && p.token === token
-  )
-
-  // If position already exists, return it without updating the timestamp
-  // This preserves the original entry time
-  if (existingIndex >= 0) {
-    return positionEntryTimes[address][existingIndex]
-  }
-
-  // Create new position entry with current timestamp
-  const entry: PositionEntry = {
-    protocol,
-    token,
-    timestamp: Date.now()
-  }
-
-  // Add new position entry
-  positionEntryTimes[address].push(entry)
-  return entry
-}
-
-/**
- * Gets the entry timestamp for a specific position
- * @param address - Wallet address
- * @param protocol - Protocol name
- * @param token - Token symbol
- * @returns The position entry if found, undefined otherwise
- */
-export function getPositionEntry(
-  address: string,
-  protocol: string,
-  token: string
-): PositionEntry | undefined {
-  if (!positionEntryTimes[address]) return undefined
-
-  return positionEntryTimes[address].find(
-    p => p.protocol === protocol && p.token === token
-  )
-}
-
-/**
- * Calculates the age of a position in hours
- * @param address - Wallet address
- * @param protocol - Protocol name
- * @param token - Token symbol
- * @returns Age in hours, or 0 if position entry is not found
- */
-export function getPositionAgeHours(
-  address: string,
-  protocol: string,
-  token: string
-): number {
-  const entry = getPositionEntry(address, protocol, token)
-  if (!entry) return 0
-
-  const ageMs = Date.now() - entry.timestamp
-  return ageMs / (1000 * 60 * 60) // Convert ms to hours
-}
-
-/**
- * Removes a position entry from the history
- * @param address - Wallet address
- * @param protocol - Protocol name
- * @param token - Token symbol
- * @returns True if position entry was removed, false otherwise
- */
-export function removePositionEntry(
-  address: string,
-  protocol: string,
-  token: string
-): boolean {
-  if (!positionEntryTimes[address]) return false
-
-  const initialLength = positionEntryTimes[address].length
-  positionEntryTimes[address] = positionEntryTimes[address].filter(
-    p => !(p.protocol === protocol && p.token === token)
-  )
-
-  return positionEntryTimes[address].length < initialLength
-}
+import { recordPositionEntry, getPositionAgeHours } from '../memory/db'
 
 /**
  * Calculates the expected annual gain from a reallocation
@@ -194,3 +81,6 @@ export function isReallocationViable(
     reason: `Reallocation is economically viable with expected annual gain of $${expectedAnnualGain.toFixed(2)} and gain-to-cost ratio of ${gainToCostRatio.toFixed(2)}`
   }
 }
+
+// Export the database functions for use in the toolkit
+export { recordPositionEntry, getPositionAgeHours }
